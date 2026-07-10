@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>YT Downloader</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="logo">
+      <span class="logo-mark">▶</span>
+      <span>YT Downloader</span>
+    </div>
+    <p class="tagline">Download video &amp; audio YouTube — pilih format, resolusi, dan bitrate</p>
+  </header>
+
+  <main class="container">
+    <section class="search-card">
+      <form id="search-form">
+        <input
+          id="url-input"
+          type="url"
+          placeholder="Tempel link video YouTube di sini..."
+          required
+        />
+        <button type="submit" id="search-btn">Cari</button>
+      </form>
+      <p id="error-msg" class="error-msg hidden"></p>
+    </section>
+
+    <section id="result" class="result hidden">
+      <div class="video-meta">
+        <img id="thumb" src="" alt="thumbnail" />
+        <div class="meta-text">
+          <h2 id="video-title"></h2>
+          <p id="video-sub"></p>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="video">Video</button>
+        <button class="tab-btn" data-tab="audio">Audio</button>
+        <button class="tab-btn" data-tab="split">Pisah Instrumen</button>
+      </div>
+
+      <div id="video-panel" class="panel">
+        <table class="fmt-table">
+          <thead>
+            <tr>
+              <th>Kualitas</th>
+              <th>Resolusi</th>
+              <th>Format</th>
+              <th>FPS</th>
+              <th>Bitrate</th>
+              <th>Ukuran</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="video-body"></tbody>
+        </table>
+      </div>
+
+      <div id="audio-panel" class="panel hidden">
+        <table class="fmt-table">
+          <thead>
+            <tr>
+              <th>Kualitas</th>
+              <th>Format</th>
+              <th>Bitrate</th>
+              <th>Ukuran</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="audio-body"></tbody>
+        </table>
+      </div>
+
+      <div id="split-panel" class="panel hidden">
+        <div id="split-intro" class="split-intro">
+          <p>Pisahkan audio video ini menjadi 4 track terpisah: <strong>Vocal</strong>, <strong>Drum</strong>, <strong>Bass</strong>, dan <strong>Instrumen Lain</strong>, menggunakan model AI Demucs. Proses berjalan di server dan bisa memakan waktu beberapa menit tergantung durasi lagu.</p>
+          <button id="split-start-btn" class="dl-btn split-start-btn">Mulai Pisahkan Instrumen</button>
+        </div>
+        <div id="split-progress" class="split-progress hidden">
+          <div class="spinner spinner-inline"></div>
+          <p id="split-progress-text">Menunggu...</p>
+        </div>
+        <div id="split-error" class="error-msg hidden"></div>
+        <div id="split-results" class="split-results hidden">
+          <div class="stem-list" id="stem-list"></div>
+          <a id="split-download-all" class="dl-btn split-start-btn" href="#" download>Download Semua (ZIP)</a>
+        </div>
+      </div>
+    </section>
+
+    <div id="loading-overlay" class="loading-overlay hidden">
+      <div class="spinner"></div>
+      <p id="loading-text">Memproses...</p>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <p>Ditenagai oleh <a href="https://github.com/yt-dlp/yt-dlp" target="_blank" rel="noopener">yt-dlp</a>. Gunakan sesuai hak cipta dan ketentuan layanan YouTube.</p>
+  </footer>
+
+  <script src="/script.js"></script>
+</body>
+</html>

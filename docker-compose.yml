@@ -1,0 +1,18 @@
+services:
+  ytdlp-web:
+    build:
+      context: ./backend
+    container_name: ytdlp-web
+    ports:
+      - "8899:8000"
+    volumes:
+      - ./downloads:/app/downloads
+      - ./splits:/app/splits
+      - demucs-models:/root/.cache
+    environment:
+      - DOWNLOAD_DIR=/app/downloads
+      - SPLIT_DIR=/app/splits
+    restart: unless-stopped
+
+volumes:
+  demucs-models:
