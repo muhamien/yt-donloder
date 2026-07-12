@@ -169,6 +169,8 @@ const splitError = document.getElementById("split-error");
 const splitResults = document.getElementById("split-results");
 const stemList = document.getElementById("stem-list");
 const splitDownloadAll = document.getElementById("split-download-all");
+const splitEngineSelect = document.getElementById("split-engine-select");
+const splitQualitySelect = document.getElementById("split-quality-select");
 
 function resetSplitPanel() {
   if (splitPollTimer) {
@@ -249,7 +251,11 @@ splitStartBtn.addEventListener("click", async () => {
     const res = await fetch("/api/split", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: currentUrl }),
+      body: JSON.stringify({
+        url: currentUrl,
+        engine: splitEngineSelect.value,
+        quality: splitQualitySelect.value,
+      }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.detail || "Gagal memulai proses pemisahan");

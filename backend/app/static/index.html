@@ -78,7 +78,24 @@
 
       <div id="split-panel" class="panel hidden">
         <div id="split-intro" class="split-intro">
-          <p>Pisahkan audio video ini menjadi 4 track terpisah: <strong>Vocal</strong>, <strong>Drum</strong>, <strong>Bass</strong>, dan <strong>Instrumen Lain</strong>, menggunakan model AI Demucs. Proses berjalan di server dan bisa memakan waktu beberapa menit tergantung durasi lagu.</p>
+          <p>Pisahkan audio video ini menggunakan model AI. Dengan <strong>Demucs</strong>: 6 track — <strong>Vocal</strong>, <strong>Drum</strong>, <strong>Bass</strong>, <strong>Guitar</strong>, <strong>Piano</strong>, dan <strong>Others</strong>. Dengan <strong>Spleeter</strong>: 4 track — <strong>Vocal</strong>, <strong>Drum</strong>, <strong>Bass</strong>, dan <strong>Others</strong> (Spleeter tidak punya model pemisah gitar/piano). Proses berjalan di server dan bisa memakan waktu beberapa menit tergantung durasi lagu.</p>
+          <div class="split-options">
+            <label class="split-option">
+              <span>Engine</span>
+              <select id="split-engine-select">
+                <option value="demucs" selected>Demucs (kualitas terbaik, direkomendasikan)</option>
+                <option value="spleeter">Spleeter (Deezer, lebih cepat)</option>
+              </select>
+            </label>
+            <label class="split-option">
+              <span>Kualitas Audio</span>
+              <select id="split-quality-select">
+                <option value="128">128 kbps</option>
+                <option value="192">192 kbps</option>
+                <option value="320" selected>320 kbps (terbaik)</option>
+              </select>
+            </label>
+          </div>
           <button id="split-start-btn" class="dl-btn split-start-btn">Mulai Pisahkan Instrumen</button>
         </div>
         <div id="split-progress" class="split-progress hidden">
