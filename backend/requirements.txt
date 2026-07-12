@@ -3,3 +3,4 @@ uvicorn[standard]==0.30.6
 yt-dlp>=2025.6.9
 python-multipart==0.0.9
 demucs==4.0.1
+requests==2.32.3

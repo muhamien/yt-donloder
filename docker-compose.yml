@@ -12,7 +12,19 @@ services:
     environment:
       - DOWNLOAD_DIR=/app/downloads
       - SPLIT_DIR=/app/splits
+      - SPLEETER_WORKER_URL=http://spleeter:8001
+    depends_on:
+      - spleeter
+    restart: unless-stopped
+
+  spleeter:
+    build:
+      context: ./spleeter-worker
+    container_name: spleeter-worker
+    volumes:
+      - spleeter-models:/app/pretrained_models
     restart: unless-stopped
 
 volumes:
   demucs-models:
+  spleeter-models:

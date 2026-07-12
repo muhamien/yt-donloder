@@ -16,7 +16,7 @@ COPY app ./app
 RUN mkdir -p /app/downloads /app/splits
 
 # Pre-download bobot model Demucs supaya request pertama tidak menunggu unduhan
-RUN python -c "from demucs.pretrained import get_model; get_model('htdemucs')"
+RUN python -c "from demucs.pretrained import get_model; get_model('htdemucs_6s')"
 
 EXPOSE 8000
 

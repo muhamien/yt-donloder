@@ -267,6 +267,37 @@ body {
   margin: 0 0 16px;
 }
 
+.split-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.split-option {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  min-width: 220px;
+  flex: 1;
+}
+
+.split-option select {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: #0c0c10;
+  color: var(--text);
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.split-option select:focus {
+  border-color: var(--accent);
+}
+
 .split-start-btn {
   padding: 12px 20px;
   display: inline-block;

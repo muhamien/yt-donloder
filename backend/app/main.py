@@ -5,6 +5,7 @@ import time
 import uuid
 import zipfile
 
+import requests
 import yt_dlp
 from fastapi import BackgroundTasks, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,6 +15,7 @@ from pydantic import BaseModel
 
 DOWNLOAD_DIR = os.environ.get("DOWNLOAD_DIR", "/app/downloads")
 SPLIT_DIR = os.environ.get("SPLIT_DIR", "/app/splits")
+SPLEETER_WORKER_URL = os.environ.get("SPLEETER_WORKER_URL", "http://spleeter:8001")
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 os.makedirs(SPLIT_DIR, exist_ok=True)
 
@@ -24,8 +26,16 @@ STEM_LABELS = {
     "vocals": "Vocal",
     "drums": "Drum",
     "bass": "Bass",
-    "other": "Instrumen Lain",
+    "guitar": "Guitar",
+    "piano": "Piano",
+    "other": "Others",
 }
+
+SPLIT_ENGINES = {
+    "demucs": "Demucs",
+    "spleeter": "Spleeter",
+}
+SPLIT_QUALITIES = {"128", "192", "320"}
 
 app = FastAPI(title="YT Downloader")
 
@@ -50,6 +60,8 @@ class DownloadRequest(BaseModel):
 
 class SplitRequest(BaseModel):
     url: str
+    engine: str = "demucs"  # "demucs" | "spleeter"
+    quality: str = "320"  # bitrate mp3: "128" | "192" | "320"
 
 
 def classify_video_tier(height: int | None) -> str:
@@ -237,7 +249,80 @@ def cleanup_stale_split_jobs():
         split_jobs.pop(job_id, None)
 
 
-def run_split_job(job_id: str, url: str):
+DEMUCS_MODEL = "htdemucs_6s"  # 6 stem: vocals, drums, bass, guitar, piano, other
+
+
+def run_demucs(src_path: str, out_dir: str, quality: str) -> str:
+    cmd = [
+        "demucs",
+        "-n",
+        DEMUCS_MODEL,
+        "--mp3",
+        "--mp3-bitrate",
+        quality,
+        "-o",
+        out_dir,
+        src_path,
+    ]
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    if proc.returncode != 0:
+        raise RuntimeError(f"Demucs gagal: {proc.stderr[-2000:]}")
+
+    track_name = os.path.splitext(os.path.basename(src_path))[0]
+    return os.path.join(out_dir, DEMUCS_MODEL, track_name)
+
+
+def run_spleeter(src_path: str, out_dir: str, quality: str) -> str:
+    try:
+        with open(src_path, "rb") as f:
+            resp = requests.post(
+                f"{SPLEETER_WORKER_URL}/separate",
+                files={"file": ("audio.wav", f, "audio/wav")},
+                data={"stems": "4stems"},
+                timeout=1800,
+            )
+    except requests.RequestException as exc:
+        raise RuntimeError(f"Tidak bisa menghubungi layanan Spleeter: {exc}")
+
+    if resp.status_code != 200:
+        detail = resp.text[:500]
+        raise RuntimeError(f"Spleeter gagal: {detail}")
+
+    stems_dir = os.path.join(out_dir, "spleeter")
+    os.makedirs(stems_dir, exist_ok=True)
+    zip_path = os.path.join(out_dir, "spleeter_stems.zip")
+    with open(zip_path, "wb") as f:
+        f.write(resp.content)
+
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        zf.extractall(stems_dir)
+    os.remove(zip_path)
+
+    for stem_key in STEM_LABELS:
+        wav_path = os.path.join(stems_dir, f"{stem_key}.wav")
+        if not os.path.exists(wav_path):
+            continue
+        mp3_path = os.path.join(stems_dir, f"{stem_key}.mp3")
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            wav_path,
+            "-codec:a",
+            "libmp3lame",
+            "-b:a",
+            f"{quality}k",
+            mp3_path,
+        ]
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        if proc.returncode != 0:
+            raise RuntimeError(f"Konversi mp3 gagal: {proc.stderr[-2000:]}")
+        os.remove(wav_path)
+
+    return stems_dir
+
+
+def run_split_job(job_id: str, url: str, engine: str, quality: str):
     job = split_jobs[job_id]
     job_dir = os.path.join(SPLIT_DIR, job_id)
     src_dir = os.path.join(job_dir, "source")
@@ -272,28 +357,22 @@ def run_split_job(job_id: str, url: str):
         src_path = os.path.join(src_dir, src_files[0])
 
         job["status"] = "processing"
+        engine_label = SPLIT_ENGINES.get(engine, engine)
+        stem_hint = (
+            "vocal, drum, bass, gitar, piano, others"
+            if engine == "demucs"
+            else "vocal, drum, bass, others"
+        )
         job["message"] = (
-            "Memisahkan instrumen (vocal, drum, bass, lainnya) dengan Demucs... "
-            "proses ini bisa memakan waktu beberapa menit."
+            f"Memisahkan instrumen ({stem_hint}) dengan {engine_label} "
+            f"pada kualitas {quality}kbps... proses ini bisa memakan waktu beberapa menit."
         )
 
-        cmd = [
-            "demucs",
-            "-n",
-            "htdemucs",
-            "--mp3",
-            "--mp3-bitrate",
-            "320",
-            "-o",
-            out_dir,
-            src_path,
-        ]
-        proc = subprocess.run(cmd, capture_output=True, text=True)
-        if proc.returncode != 0:
-            raise RuntimeError(f"Demucs gagal: {proc.stderr[-2000:]}")
+        if engine == "spleeter":
+            stems_dir = run_spleeter(src_path, out_dir, quality)
+        else:
+            stems_dir = run_demucs(src_path, out_dir, quality)
 
-        track_name = os.path.splitext(os.path.basename(src_path))[0]
-        stems_dir = os.path.join(out_dir, "htdemucs", track_name)
         stems = []
         for stem_key, label in STEM_LABELS.items():
             file_path = os.path.join(stems_dir, f"{stem_key}.mp3")
@@ -323,6 +402,11 @@ def run_split_job(job_id: str, url: str):
 
 @app.post("/api/split")
 def start_split(req: SplitRequest, background_tasks: BackgroundTasks):
+    if req.engine not in SPLIT_ENGINES:
+        raise HTTPException(status_code=400, detail="engine harus 'demucs' atau 'spleeter'")
+    if req.quality not in SPLIT_QUALITIES:
+        raise HTTPException(status_code=400, detail="quality harus 128, 192, atau 320")
+
     cleanup_stale_split_jobs()
     job_id = str(uuid.uuid4())
     split_jobs[job_id] = {
@@ -332,7 +416,7 @@ def start_split(req: SplitRequest, background_tasks: BackgroundTasks):
         "title": None,
         "stems": [],
     }
-    background_tasks.add_task(run_split_job, job_id, req.url)
+    background_tasks.add_task(run_split_job, job_id, req.url, req.engine, req.quality)
     return {"job_id": job_id}
 
 
