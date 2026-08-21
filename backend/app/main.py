@@ -107,6 +107,7 @@ def get_info(req: InfoRequest):
         "no_warnings": True,
         "skip_download": True,
         "noplaylist": True,
+        "cookiefile": "./cookie.txt"
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
